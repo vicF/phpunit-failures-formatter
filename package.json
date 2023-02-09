@@ -1,0 +1,21 @@
+{
+    "name": "fokin/phpunit-failures-formatter",
+    "description": "Helps to colorise and format failure messages",
+    "type": "library",
+    "require": {
+	"php": ">=5.4.0",
+        "symfony/console": "^6.2"
+    },
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Fokin\\PhpunitFailuresFormatter\\": "/src"
+        }
+    },
+    "authors": [
+        {
+            "name": "Victor Fokin",
+            "email": "victor.fokin@gmail.com"
+        }
+    ]
+}
