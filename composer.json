@@ -17,5 +17,6 @@
       "name": "Victor Fokin",
       "email": "victor.fokin@gmail.com"
     }
-  ]
+  ],
+  "minimum-stability": "stable"
 }
