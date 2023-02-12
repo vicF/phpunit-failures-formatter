@@ -3,7 +3,6 @@
 namespace Fokin\PhpunitFailuresFormatter;
 
 use Symfony\Component\Console\Formatter\OutputFormatter;
-use tests\unit\Helpers\Formatter;
 
 /**
  *
@@ -20,148 +19,174 @@ class FormatterHelper implements \Stringable
     protected $data = [];
     protected OutputFormatter $formatter;
 
-    public function __construct()
-    {
+    public function __construct() {
         $this->formatter = new OutputFormatter();
         $this->formatter->setDecorated(true);
     }
 
     /**
+     * What result is expected
+     *
      * @param string $text
      * @return FormatterHelper
      */
-    public function expected(string $text): FormatterHelper
-    {
-        $this->expected = '{color:green}' . $text . '{color}';
+    public function expected(string $text): FormatterHelper {
+        $this->expected = $text;
         return $this;
     }
 
-    public function actual(string $text): FormatterHelper
-    {
-        $this->actual = '{color:red}' . $text . '{color}';
+    /**
+     * Actual result
+     *
+     * @param string $text
+     * @return $this
+     */
+    public function actual(string $text): FormatterHelper {
+        $this->actual = $text;
         return $this;
     }
 
-    protected function _prepareData($data)
-    {
+    protected function _prepareData($data) {
         if (gettype($data) !== 'string') {
-            $data = Tools::varDump($data);
+            $data = self::varDump($data);
         }
         return $data;
     }
 
     /**
-     * @param $data
+     * Result of something
+     *
+     * @param      $data
      * @param null $title
      * @return $this
      */
-    public function res($data, $title = null): FormatterHelper
-    {
+    public function res($data, $title = null): FormatterHelper {
 
-        $this->data[] = [self::RESULT, "{code}" . $this->_prepareData($data) . "{code}", $title];
+        $this->data[] = [self::RESULT, $this->_prepareData($data), $title];
         return $this;
     }
 
-    public function req($data, $title = null): FormatterHelper
-    {
-        $this->data[] = [self::REQUEST, "{code}" . $this->_prepareData($data) . "{code}", $title];
+    /**
+     * Incoming data
+     *
+     * @param $data
+     * @param $title
+     * @return $this
+     */
+    public function req($data, $title = null): FormatterHelper {
+        $this->data[] = [self::REQUEST, $this->_prepareData($data), $title];
         return $this;
     }
 
-    public function url($url, $title = null): FormatterHelper
-    {
+    /**
+     * @TODO there is an issue with dash in URL in console
+     * @param $url
+     * @param $title
+     * @return $this
+     */
+    public function url($url, $title = null): FormatterHelper {
         $this->data[] = [self::URL, $url, $title];
         return $this;
     }
 
-    public function jiraIssue($url, $title = null): FormatterHelper
-    {
+    /**
+     * @TODO there is an issue with dash in URL in console
+     *
+     * @param $url
+     * @param $title
+     * @return $this
+     */
+    public function jiraIssue($url, $title = null): FormatterHelper {
         $this->data[] = [self::JIRA, $url, $title];
         return $this;
     }
 
-    public function backTrace($backtrace): FormatterHelper
-    {
+    public function backTrace($backtrace): FormatterHelper {
         $this->backtrace = $backtrace;
         return $this;
     }
 
     /**
-     * @param $params
+     * @param      $params
      * @param null $title
      * @param bool $geo
      * @return $this
      */
-    public function legend($params, $title = null, $geo = false): FormatterHelper
-    {
+    public function legend($params, $title = null, $geo = false): FormatterHelper {
         $this->_strParts[] = ['_legend', $params, $title, $geo];
         return $this;
     }
 
     /**
+     * If constant JIRA_TAGS defined will return tag wrapped in black color tag to make it invisible
+     *
+     * @param $tag
+     * @return string
+     */
+    protected static function jiraTag($tag) {
+        return defined('JIRA_TAGS') ? "<fg=black>{{$tag}}</>" : '';
+    }
+
+    /**
      * @return string|void
      */
-    public function __toString()
-    {
+    public function __toString() {
+        $spacer = '       ';
         $output = $this->formatter->format(
-            "✅   <fg=green>{$this->expected}</>\n❗   <fg=red>{$this->actual}</>\n");
+            self::jiraTag('color:green') . "✅   <fg=green>{$this->expected}</>" . self::jiraTag('color') . self::jiraTag('color:red') . "\n❗   <fg=red>{$this->actual}</>" . self::jiraTag('color'));
         foreach ($this->data as $resArray) {
             @[$type, $data, $title] = $resArray;
             switch ($type) {
                 case self::RESULT:
-                    $output .= '⚙   ️';
-                    if (!empty($title)) {
-                        $output .= $this->formatter->format("<options=bold>$title</>\n");
-                    }
-                    $output .= $data . "\n";
+                    $output .= "\n🗂   ️";
+                    $title ??= 'Result';
+                    $output .= $this->formatter->format("<options=bold>$title</>" . self::jiraTag('code') . "\n");
+                    $output .= $data . self::jiraTag('code');
                     break;
                 case self::REQUEST:
-                    $output .= '📡   ️';
-                    if (!empty($title)) {
-                        $output .= $this->formatter->format("<options=bold>$title</>\n");
-                    }
-                    $output .= $data . "\n";
+                    $output .= "\n📡   ️";
+                    $title ??= 'Request';
+                    $output .= $this->formatter->format("<options=bold>$title</>" . self::jiraTag('code') . "\n");
+                    $output .= $data.self::jiraTag('code');
                     break;
                 case self::URL:
-                    $output .= '🔗   ️';
-                    if (!empty($title)) {
-                        $output .= $this->formatter->format("<options=bold>$title</>\n");
-                    }
-                    $output .= $this->formatter->format("    <href={$data}>$data</>\n");
+                    $output .= "\n🔗   ️";
+                    $title ??= 'URL';
+                    $output .= $this->formatter->format("<options=bold>$title</>\n");
+                    $output .= $this->formatter->format("    <href={$data}>$data</>");
                     break;
                 case self::JIRA:
                     $output .= '🔗   ️';
                     if (!empty($title)) {
                         $output .= $this->formatter->format("<options=bold>$title</>\n");
                     }
-                    $output .= $this->formatter->format("    Jira issue: <href=https://jira.internetbrands.com/browse/{$data}>$data</>\n");
+                    $str1 = "<href=" . @JIRA_URL . "{$data}>{$data}</>\n";
+                    $output .= $this->formatter->format("    Jira issue: {$str1}\n");
                     break;
                 default:
-                    $output .= '🖥   ️';
-                    if (!empty($title)) {
-                        $output .= $this->formatter->format("<options=bold>$title</>\n");
-                    }
+                    $output .= "\n🖥   ️";
+                    $title ??= 'Data';
+                    $output .= $this->formatter->format("<options=bold>$title</>\n");
                     if (is_array($data)) {
-                        $data = Tools::varDump($data, 1000);
+                        $data = self::varDump($data, 1000);
                     }
                     $output .= $data . "\n";
 
             }
         }
         if (!empty($this->backtrace)) {
-            $output .= $this->formatter->format("🛠   <fg=gray>Line:{$this->backtrace[0]['line']}\n{$this->backtrace[0]['file']}</>\n");
+            $output .= $this->formatter->format("\n🛠   <fg=gray>Line:{$this->backtrace[0]['line']}\n{$this->backtrace[0]['file']}</>");
         }
 
-        return $output;
+        return $output . "\n";
     }
 
     /**
-     * @param $value
+     * @param      $value
      * @param null $title
      * @return FormatterHelper
      */
-    public function resXmlFormatted($value, $title = null): FormatterHelper
-    {
+    public function resXmlFormatted($value, $title = null): FormatterHelper {
         try {
             $dom = new \DOMDocument('1.0');
             $dom->preserveWhiteSpace = false;
@@ -178,25 +203,23 @@ class FormatterHelper implements \Stringable
     /**
      * Print out xml data
      *
-     * @param $value
+     * @param      $value
      * @param null $title
      * @param null $topCut
      * @param null $bottomCut
      * @return $this
      */
-    public function resXml($value, $title = null, $topCut = null, $bottomCut = null): FormatterHelper
-    {
+    public function resXml($value, $title = null, $topCut = null, $bottomCut = null): FormatterHelper {
         $this->data[] = ['_resXml', $value, $title, $topCut, $bottomCut];
         return $this;
     }
 
     /**
-     * @param $value
+     * @param        $value
      * @param string $title
      * @return $this
      */
-    public function dbErrors($value, $title = ''): FormatterHelper
-    {
+    public function dbErrors($value, $title = ''): FormatterHelper {
         $this->data[] = ['_dbErrors', $value, $title];
         return $this;
     }
@@ -205,9 +228,113 @@ class FormatterHelper implements \Stringable
      * @param $data
      * @return $this
      */
-    public function libXmlErrors($data)
-    {
+    public function libXmlErrors($data) {
         $this->data[] = ['_libXmlErrors', $data];
         return $this;
+    }
+
+    /**
+     * Dumps variable value. Replacement for print_r with recursion limit
+     *
+     * @param       $variable
+     * @param int   $strlen
+     * @param int   $width
+     * @param int   $depth
+     * @param bool  $showCaller
+     * @param int   $i
+     * @param array $objects
+     * @return string
+     */
+    public static function varDump($variable, int $strlen = 100, int $width = 25, int $depth = 10, bool $showCaller = false, int $i = 0, &$objects = []) {
+        $search = ["\0", "\a", "\b", "\f", "\n", "\r", "\t", "\v"];
+        $replace = ['\0', '\a', '\b', '\f', '\n', '\r', '\t', '\v'];
+
+        $string = '';
+
+        switch (gettype($variable)) {
+            case 'boolean':
+                $string .= $variable ? 'true' : 'false';
+                break;
+            case 'integer':
+            case 'double':
+                $string .= $variable;
+                break;
+            case 'resource':
+                $string .= '[resource]';
+                break;
+            case 'NULL':
+                $string .= 'null';
+                break;
+            case 'unknown type':
+                $string .= '???';
+                break;
+            case 'string':
+                $len = strlen($variable);
+                $variable = str_replace($search, $replace, substr($variable, 0, $strlen), $count);
+                $variable = substr($variable, 0, $strlen);
+                if ($len < $strlen) {
+                    $string .= '"' . $variable . '"';
+                } else {
+                    $string .= 'string(' . $len . '): "' . $variable . '"...';
+                }
+                break;
+            case 'array':
+                $len = count($variable);
+                if ($i == $depth) {
+                    $string .= 'array(' . $len . ') {...}';
+                } elseif (!$len) {
+                    $string .= 'array(0) {}';
+                } else {
+                    $keys = array_keys($variable);
+                    $spaces = str_repeat(' ', $i * 2);
+                    $string .= "array($len)\n" . $spaces . '{';
+                    $count = 0;
+                    foreach ($keys as $key) {
+                        if ($count == $width) {
+                            $string .= "\n" . $spaces . '  ...';
+                            break;
+                        }
+                        $string .= "\n" . $spaces . "  [$key] => ";
+                        $string .= self::varDump($variable[$key], $strlen, $width, $depth, false, $i + 1, $objects);
+                        $count++;
+                    }
+                    $string .= "\n" . $spaces . '}';
+                }
+                break;
+            case 'object':
+                $id = array_search($variable, $objects, true);
+                if ($id !== false) {
+                    $string .= get_class($variable) . '#' . ($id + 1) . ' {...}';
+                } else if ($i == $depth) {
+                    $string .= get_class($variable) . ' {...}';
+                } else {
+                    $id = array_push($objects, $variable);
+                    $array = (array)$variable;
+                    $spaces = str_repeat(' ', $i * 2);
+                    $string .= get_class($variable) . "#$id\n" . $spaces . '{';
+                    $properties = array_keys($array);
+                    foreach ($properties as $property) {
+                        $name = str_replace("\0", ':', trim($property));
+                        $string .= "\n" . $spaces . "  [$name] => ";
+                        $string .= self::varDump($array[$property], $strlen, $width, $depth, false, $i + 1, $objects);
+                    }
+                    $string .= "\n" . $spaces . '}';
+                }
+                break;
+        }
+
+        if ($i > 0) {
+            return $string;
+        }
+        if ($showCaller) {
+            $backtrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
+            do {
+                $caller = array_shift($backtrace);
+            } while ($caller && !isset($caller['file']));
+            if ($caller) {
+                $string .= "\n(" . $caller['file'] . ':' . $caller['line'] . ')';
+            }
+        }
+        return $string;
     }
 }
