@@ -120,11 +120,12 @@ class FormatterHelper implements \Stringable
     /**
      * If constant JIRA_TAGS defined will return tag wrapped in black color tag to make it invisible
      *
-     * @param $tag
+     * @param      $tag
+     * @param bool $newLine
      * @return string
      */
-    protected static function jiraTag($tag) {
-        return defined('JIRA_TAGS') ? "<fg=black>{{$tag}}</>" : '';
+    protected static function jiraTag($tag, bool $newLine = false) {
+        return defined('JIRA_TAGS') ? "<fg=black>{{$tag}}</> " . ($newLine ? "\n" : '') : '';
     }
 
     /**
@@ -133,7 +134,7 @@ class FormatterHelper implements \Stringable
     public function __toString() {
         $spacer = '       ';
         $output = $this->formatter->format(
-            self::jiraTag('color:green') . "✅   <fg=green>{$this->expected}</>" . self::jiraTag('color') . self::jiraTag('color:red') . "\n❗   <fg=red>{$this->actual}</>" . self::jiraTag('color'));
+            self::jiraTag('color:green', true) . "✅   <fg=green>{$this->expected}</>" . self::jiraTag('color') . self::jiraTag('color:red') . "\n❗   <fg=red>{$this->actual}</>" . self::jiraTag('color'));
         foreach ($this->data as $resArray) {
             @[$type, $data, $title] = $resArray;
             switch ($type) {
@@ -147,7 +148,7 @@ class FormatterHelper implements \Stringable
                     $output .= "\n📡   ️";
                     $title ??= 'Request';
                     $output .= $this->formatter->format("<options=bold>$title</>" . self::jiraTag('code') . "\n");
-                    $output .= $data.self::jiraTag('code');
+                    $output .= $data . self::jiraTag('code');
                     break;
                 case self::URL:
                     $output .= "\n🔗   ️";
@@ -156,12 +157,11 @@ class FormatterHelper implements \Stringable
                     $output .= $this->formatter->format("    <href={$data}>$data</>");
                     break;
                 case self::JIRA:
-                    $output .= '🔗   ️';
-                    if (!empty($title)) {
-                        $output .= $this->formatter->format("<options=bold>$title</>\n");
-                    }
+                    $output .= "\n🔗   ️";
+                    $title ??= 'Last known Jira issue for this case';
+                    $output .= $this->formatter->format("<options=bold>$title</>\n");
                     $str1 = "<href=" . @JIRA_URL . "{$data}>{$data}</>\n";
-                    $output .= $this->formatter->format("    Jira issue: {$str1}\n");
+                    $output .= $this->formatter->format("    Jira issue: {$str1}");
                     break;
                 default:
                     $output .= "\n🖥   ️";
@@ -170,7 +170,7 @@ class FormatterHelper implements \Stringable
                     if (is_array($data)) {
                         $data = self::varDump($data, 1000);
                     }
-                    $output .= $data . "\n";
+                    $output .= $data ;
 
             }
         }
