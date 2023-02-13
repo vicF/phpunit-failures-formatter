@@ -109,11 +109,10 @@ class FormatterHelper implements \Stringable
     /**
      * @param      $params
      * @param null $title
-     * @param bool $geo
      * @return $this
      */
-    public function legend($params, $title = null, $geo = false): FormatterHelper {
-        $this->_strParts[] = ['_legend', $params, $title, $geo];
+    public function legend($params, $title = null): FormatterHelper {
+        $this->_strParts[] = ['_legend', $params, $title];
         return $this;
     }
 
@@ -125,14 +124,13 @@ class FormatterHelper implements \Stringable
      * @return string
      */
     protected static function jiraTag($tag, bool $newLine = false) {
-        return defined('JIRA_TAGS') ? "<fg=black>{{$tag}}</> " . ($newLine ? "\n" : '') : '';
+        return defined('JIRA_TAGS') ? " <fg=black>{{$tag}}</> " . ($newLine ? "\n" : '') : '';
     }
 
     /**
      * @return string|void
      */
     public function __toString() {
-        $spacer = '       ';
         $output = $this->formatter->format(
             self::jiraTag('color:green', true) . "✅   <fg=green>{$this->expected}</>" . self::jiraTag('color') . self::jiraTag('color:red') . "\n❗   <fg=red>{$this->actual}</>" . self::jiraTag('color'));
         foreach ($this->data as $resArray) {
@@ -141,14 +139,16 @@ class FormatterHelper implements \Stringable
                 case self::RESULT:
                     $output .= "\n🗂   ️";
                     $title ??= 'Result';
-                    $output .= $this->formatter->format("<options=bold>$title</>" . self::jiraTag('code') . "\n");
-                    $output .= $data . self::jiraTag('code');
+                    $output .= $this->formatter->format("<options=bold>{$title}</>"
+                        . self::jiraTag('code') . "\n"
+                        . $data . self::jiraTag('code'));
                     break;
                 case self::REQUEST:
                     $output .= "\n📡   ️";
                     $title ??= 'Request';
-                    $output .= $this->formatter->format("<options=bold>$title</>" . self::jiraTag('code') . "\n");
-                    $output .= $data . self::jiraTag('code');
+                    $output .= $this->formatter->format("<options=bold>$title</>"
+                        . self::jiraTag('code') . "\n"
+                        . $data . self::jiraTag('code'));
                     break;
                 case self::URL:
                     $output .= "\n🔗   ️";
@@ -170,7 +170,7 @@ class FormatterHelper implements \Stringable
                     if (is_array($data)) {
                         $data = self::varDump($data, 1000);
                     }
-                    $output .= $data ;
+                    $output .= $data;
 
             }
         }
