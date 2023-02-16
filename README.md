@@ -12,8 +12,7 @@ composer require --dev fokin/phpunit-failures-formatter
 ##Setup
 
 Add `use Fokin\PhpunitFailuresFormatter\FormatterTrait;` to your test case. 
-Alternately you can use static call to formatter class:
-`Fokin\PhpunitFailuresFormatter\Formatter::expected()`
+
 
 ##Usage
 
