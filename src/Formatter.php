@@ -341,4 +341,8 @@ class Formatter implements \Stringable
         }
         return $string;
     }
+
+    public function setTestName($name): Formatter {
+        return $this;
+    }
 }
