@@ -3,8 +3,7 @@
   "description": "Helps to colorize and format failure messages",
   "type": "library",
   "require": {
-    "php": ">=8.0",
-    "symfony/console": "*"
+    "php": ">=8.0"
   },
   "license": "MIT",
   "autoload": {

@@ -18,10 +18,25 @@ class Formatter implements \Stringable
     protected $backtrace;
     protected $data = [];
     protected OutputFormatter $formatter;
+    protected static array $colors;
 
-    public function __construct() {
+    public function __construct()
+    {
         $this->formatter = new OutputFormatter();
-        $this->formatter->setDecorated(true);
+        self::initColors();
+    }
+
+    protected static function initColors()
+    {
+        if (empty(self::$colors)) {
+            self::$colors['BLACK'] = @exec('tput setaf 0');
+            self::$colors['GREEN'] = @exec('tput setaf 1');
+            self::$colors['RED'] = @exec('tput setaf 3');
+            self::$colors['BOLD'] = @exec('tput bold');
+            self::$colors['BLUE'] = @exec('tput setaf 5');
+            self::$colors['CL'] = @exec('tput sgr0');
+
+        }
     }
 
     /**
@@ -30,7 +45,8 @@ class Formatter implements \Stringable
      * @param string $text
      * @return Formatter
      */
-    public function expected(string $text): Formatter {
+    public function expected(string $text): Formatter
+    {
         $this->expected = $text;
         return $this;
     }
@@ -41,12 +57,14 @@ class Formatter implements \Stringable
      * @param string $text
      * @return $this
      */
-    public function actual(string $text): Formatter {
+    public function actual(string $text): Formatter
+    {
         $this->actual = $text;
         return $this;
     }
 
-    protected function _prepareData($data) {
+    protected function _prepareData($data)
+    {
         if (gettype($data) !== 'string') {
             $data = self::varDump($data);
         }
@@ -60,7 +78,8 @@ class Formatter implements \Stringable
      * @param null $title
      * @return $this
      */
-    public function res($data, $title = null): Formatter {
+    public function res($data, $title = null): Formatter
+    {
 
         $this->data[] = [self::RESULT, $this->_prepareData($data), $title];
         return $this;
@@ -73,7 +92,8 @@ class Formatter implements \Stringable
      * @param $title
      * @return $this
      */
-    public function req($data, $title = null): Formatter {
+    public function req($data, $title = null): Formatter
+    {
         $this->data[] = [self::REQUEST, $this->_prepareData($data), $title];
         return $this;
     }
@@ -84,7 +104,8 @@ class Formatter implements \Stringable
      * @param $title
      * @return $this
      */
-    public function url($url, $title = null): Formatter {
+    public function url($url, $title = null): Formatter
+    {
         $this->data[] = [self::URL, $url, $title];
         return $this;
     }
@@ -96,12 +117,14 @@ class Formatter implements \Stringable
      * @param $title
      * @return $this
      */
-    public function jiraIssue($url, $title = null): Formatter {
+    public function jiraIssue($url, $title = null): Formatter
+    {
         $this->data[] = [self::JIRA, $url, $title];
         return $this;
     }
 
-    public function backTrace($backtrace): Formatter {
+    public function backTrace($backtrace): Formatter
+    {
         $this->backtrace = $backtrace;
         return $this;
     }
@@ -111,7 +134,8 @@ class Formatter implements \Stringable
      * @param null $title
      * @return $this
      */
-    public function legend($params, $title = null): Formatter {
+    public function legend($params, $title = null): Formatter
+    {
         $this->_strParts[] = ['_legend', $params, $title];
         return $this;
     }
@@ -123,66 +147,95 @@ class Formatter implements \Stringable
      * @param bool $newLine
      * @return string
      */
-    protected static function jiraTag($tag, bool $newLine = false) {
-        return defined('JIRA_TAGS') ? " <fg=black>{{$tag}}</> " . ($newLine ? "\n" : '') : '';
+    protected static function jiraTag($tag, bool $newLine = false)
+    {
+        extract(self::$colors);
+        return defined('JIRA_TAGS') ? " {$BLACK}{{$tag}}{$CL} " . ($newLine ? "\n" : '') : '';
+    }
+
+    protected function areHyperlinksSupported()
+    {
+        static $supported;
+        if (!isset($supported)) {
+            // Set HYPERLINKS_SUPPORTED=1 if your terminal supports them
+            //
+            $supported = getenv('SUPPORT_HYPERLINKS'); // && !getenv('JENKINS_URL');
+        }
+        return $supported;
     }
 
     /**
      * @return string|void
      */
-    public function __toString() {
-        $output = $this->formatter->format(
-            self::jiraTag('color:green', true) . "✅   <fg=green>{$this->expected}</>" . self::jiraTag('color') . self::jiraTag('color:red') . "\n❗   <fg=red>{$this->actual}</>" . self::jiraTag('color'));
+    public function __toString()
+    {
+        extract(self::$colors);
+        $output =
+            self::jiraTag('color:green', true) . "✅   {$GREEN}{$this->expected}{$CL}" . self::jiraTag('color') . self::jiraTag('color:red') . "\n❗   {$RED}{$this->actual}{$CL}" . self::jiraTag('color');
         foreach ($this->data as $resArray) {
             @[$type, $data, $title] = $resArray;
             switch ($type) {
                 case self::RESULT:
                     $output .= "\n🗂   ️";
                     $title ??= 'Result';
-                    $output .= $this->formatter->format("<options=bold>{$title}</>"
+                    $output .= "{$BOLD}{$title}{$CL}"
                         . self::jiraTag('code') . "\n"
-                        . $data . self::jiraTag('code'));
+                        . $data . self::jiraTag('code');
                     break;
                 case self::REQUEST:
                     $output .= "\n📡   ️";
                     $title ??= 'Request';
-                    $output .= $this->formatter->format("<options=bold>$title</>"
+                    $output .= "{$BOLD}{$title}{$CL}"
                         . self::jiraTag('code') . "\n"
-                        . $data . self::jiraTag('code'));
+                        . $data . self::jiraTag('code');
                     break;
                 case self::URL:
                     $output .= "\n🔗   ️";
-                    $title ??= 'URL';
-                    $output .= $this->formatter->format("<options=bold>$title</>\n");
-                    $output .= $this->formatter->format("    <href={$data}>$data</>");
+                    if ($title) {
+                        $output .= "{$BOLD}{$title}{$CL}\n    ";
+                    }
+                    $output .= $this->hyperlink($data);
                     break;
                 case self::JIRA:
                     $output .= "\n🔗   ️";
                     $title ??= 'Jira issue';
-                    $output .= $this->formatter->format("<options=bold>$title</>\n");
+                    $output .= "{$BOLD}{$title}{$CL}\n";
                     if (defined('JIRA_URL')) {
-                        $str = "<href=" . JIRA_URL . "{$data}>{$data}</>\n";
+                        $str = $this->hyperlink(JIRA_URL . $data, $data);
                     } else {
                         $str = $data;
                     }
-                    $output .= $this->formatter->format("    Jira issue: {$str}");
+                    $output .= "    Jira issue: {$str}";
                     break;
                 default:
                     $output .= "\n🖥   ️";
                     $title ??= 'Data';
-                    $output .= $this->formatter->format("<options=bold>$title</>\n");
+                    $output .= "{$BOLD}{$title}{$CL}\n";
                     if (is_array($data)) {
                         $data = self::varDump($data, 1000);
                     }
                     $output .= $data;
-
             }
         }
         if (!empty($this->backtrace)) {
-            $output .= $this->formatter->format("\n🛠   <fg=gray>Line:{$this->backtrace[0]['line']}\n{$this->backtrace[0]['file']}</>");
+            $output .= "\n🛠   {$BLUE}Line:{$this->backtrace[0]['line']}\n{$this->backtrace[0]['file']}{$CL}";
         }
 
         return $output . "\n";
+    }
+
+
+    protected function hyperlink($url, $text = null)
+    {
+        if ($text === null) {
+            $text = $url;
+        }
+        if (!$this->areHyperlinksSupported()) {
+            // If running in Jenkins console
+            return $url;
+        } else {
+            return "\e]8;;$url\e\\$text\e]8;;\e\\\n";
+        }
     }
 
     /**
@@ -190,7 +243,8 @@ class Formatter implements \Stringable
      * @param null $title
      * @return Formatter
      */
-    public function resXmlFormatted($value, $title = null): Formatter {
+    public function resXmlFormatted($value, $title = null): Formatter
+    {
         try {
             $dom = new \DOMDocument('1.0');
             $dom->preserveWhiteSpace = false;
@@ -213,7 +267,8 @@ class Formatter implements \Stringable
      * @param null $bottomCut
      * @return $this
      */
-    public function resXml($value, $title = null, $topCut = null, $bottomCut = null): Formatter {
+    public function resXml($value, $title = null, $topCut = null, $bottomCut = null): Formatter
+    {
         $this->data[] = ['_resXml', $value, $title, $topCut, $bottomCut];
         return $this;
     }
@@ -223,7 +278,8 @@ class Formatter implements \Stringable
      * @param string $title
      * @return $this
      */
-    public function dbErrors($value, $title = ''): Formatter {
+    public function dbErrors($value, $title = ''): Formatter
+    {
         $this->data[] = ['_dbErrors', $value, $title];
         return $this;
     }
@@ -232,7 +288,8 @@ class Formatter implements \Stringable
      * @param $data
      * @return $this
      */
-    public function libXmlErrors($data) {
+    public function libXmlErrors($data)
+    {
         $this->data[] = ['_libXmlErrors', $data];
         return $this;
     }
@@ -249,7 +306,8 @@ class Formatter implements \Stringable
      * @param array $objects
      * @return string
      */
-    public static function varDump($variable, int $strlen = 100, int $width = 25, int $depth = 10, bool $showCaller = false, int $i = 0, &$objects = []) {
+    public static function varDump($variable, int $strlen = 100, int $width = 25, int $depth = 10, bool $showCaller = false, int $i = 0, &$objects = [])
+    {
         $search = ["\0", "\a", "\b", "\f", "\n", "\r", "\t", "\v"];
         $replace = ['\0', '\a', '\b', '\f', '\n', '\r', '\t', '\v'];
 
@@ -342,7 +400,8 @@ class Formatter implements \Stringable
         return $string;
     }
 
-    public function setTestName($name): Formatter {
+    public function setTestName($name): Formatter
+    {
         return $this;
     }
 }
