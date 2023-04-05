@@ -31,8 +31,8 @@ class Formatter implements \Stringable
         if (empty(self::$colors)) {
             $options = getenv('TERM') ? '' : ' -T xterm';
             self::$colors['BLACK'] = @exec("tput setaf 0 $options");
-            self::$colors['GREEN'] = @exec("tput setaf 1 $options");
-            self::$colors['RED'] = @exec("tput setaf 3 $options");
+            self::$colors['GREEN'] = @exec("tput setaf 2 $options");
+            self::$colors['RED'] = @exec("tput setaf 1 $options");
             self::$colors['BOLD'] = @exec("tput bold $options");
             self::$colors['BLUE'] = @exec("tput setaf 5 $options");
             self::$colors['CL'] = @exec("tput sgr0 $options");
