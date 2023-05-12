@@ -8,7 +8,7 @@ namespace Fokin\PhpunitFailuresFormatter;
  */
 trait FormatterTrait
 {
-    protected function expected($text)
+    public function expected($text)
     {
         /*static $formatter;
         if (!isset($formatter)) {*/
@@ -18,7 +18,7 @@ trait FormatterTrait
         return $formatter->expected($text)->backTrace($backTrace);
     }
 
-    protected function formatter() {
+    public function formatter() {
         return new Formatter();
     }
 
